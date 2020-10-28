@@ -79,6 +79,36 @@ TEST(VulkanAPITest, add_scalar_) {
   ASSERT_TRUE(almostEqual(a_cpu, a_vulkan.cpu()));
 }
 
+TEST(VulkanTest, addmm) {
+  auto t_m1 = at::rand({2, 2}, at::device(at::kCPU).dtype(at::kFloat));
+  auto t_m2 = at::rand({2, 3}, at::device(at::kCPU).dtype(at::kFloat));
+  auto t_b = at::rand({2, 3}, at::device(at::kCPU).dtype(at::kFloat));
+
+  float beta = 100;
+  float alpha = 2;
+  auto t_out_expected = at::addmm(t_b, t_m1, t_m2, beta, alpha);
+
+  auto tv_m1 = t_m1.vulkan();
+  auto tv_m2 = t_m2.vulkan();
+  auto tv_b = t_b.vulkan();
+  auto tv_out = at::addmm(tv_b, tv_m1, tv_m2, beta, alpha);
+  auto t_out = tv_out.cpu();
+  ASSERT_TRUE(almostEqual(t_out, t_out_expected));
+}
+
+TEST(VulkanTest, mm) {
+  auto t_m1 = at::rand({10, 20}, at::device(at::kCPU).dtype(at::kFloat));
+  auto t_m2 = at::rand({20, 30}, at::device(at::kCPU).dtype(at::kFloat));
+
+  auto t_out_expected = t_m1.mm(t_m2);
+
+  auto tv_m1 = t_m1.vulkan();
+  auto tv_m2 = t_m2.vulkan();
+  auto tv_out = tv_m1.mm(tv_m2);
+  auto t_out = tv_out.cpu();
+  ASSERT_TRUE(almostEqual(t_out, t_out_expected));
+}
+
 TEST(VulkanAPITest, copy) {
   const auto cpu = at::rand({13, 17, 37, 19}, at::device(at::kCPU).dtype(at::kFloat));
   ASSERT_TRUE(exactlyEqual(cpu, cpu.vulkan().cpu()));
